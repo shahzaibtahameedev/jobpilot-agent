@@ -1,0 +1,7 @@
+node_modules/
+.env
+logs/
+data/browser-profile
+data/processed
+data/resume
+data/ambiguity

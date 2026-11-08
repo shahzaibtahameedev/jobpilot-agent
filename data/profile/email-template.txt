@@ -1,0 +1,12 @@
+Dear {{recruiterName}},
+
+I am writing to apply for the {{positionName}} role at {{companyName}}. I am a fresh BBA graduate from SZABIST (3.5 CGPA) with a focus on HR and Analytics.
+
+Experience:
+• Pakistan Petroleum Limited, HR Intern: supported the end to end recruitment cycle, managed candidate data in SAP SuccessFactors, and prepared evaluation packs for interview panels.
+• IGI Life Insurance, HR Intern: assisted with screening and interview scheduling for 15+ candidates and maintained verification records for 50+ employees.
+• Soorty Enterprises, HR Capstone: job analysis, competency assessment, and performance management using the 70:20:10, Kirkpatrick, and GROW models.
+
+Skills: Recruitment and Talent Acquisition, CV Screening, Interview Coordination, SAP SuccessFactors, HR Analytics, Performance Management.
+
+My resume is attached. I would love to contribute the team at {{companyName}}.
