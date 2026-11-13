@@ -1,0 +1,121 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink-950: #080d1a;
+  --color-ink-900: #0b1120;
+  --color-ink-850: #0f172e;
+  --color-ink-800: #141d36;
+  --color-ink-700: #1d2a4d;
+  --color-ink-600: #2b3a66;
+  --color-ink-400: #64748b;
+  --color-ink-300: #94a3b8;
+  --color-ink-200: #cbd5e1;
+  --color-ink-100: #e2e8f0;
+
+  --color-glow-300: #fcd34d;
+  --color-glow-400: #fbbf24;
+  --color-glow-500: #f59e0b;
+  --color-glow-600: #d97706;
+
+  --color-jade-400: #34d399;
+  --color-jade-500: #10b981;
+
+  --color-rose-flag: #fb7185;
+}
+
+html {
+  background-color: var(--color-ink-900);
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-ink-900);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-glow-500);
+  color: var(--color-ink-950);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-600) transparent;
+}
+
+.panel {
+  background-color: var(--color-ink-850);
+  border: 1px solid var(--color-ink-700);
+  border-radius: 0.75rem;
+}
+
+.field {
+  width: 100%;
+  background-color: var(--color-ink-900);
+  border: 1px solid var(--color-ink-700);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-ink-100);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.field:focus {
+  border-color: var(--color-glow-500);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-glow-500);
+  color: var(--color-ink-950);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1rem;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-glow-400);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: transparent;
+  color: var(--color-ink-200);
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-ink-600);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  border-color: var(--color-glow-500);
+  color: var(--color-glow-300);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

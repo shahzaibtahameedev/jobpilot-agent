@@ -2,6 +2,8 @@ import type { McpServerConfig } from "@anthropic-ai/claude-agent-sdk";
 import type {
     AUDIT_VERDICTS,
     PIPELINE_STAGES,
+    RUN_STATUSES,
+    RUN_TYPES,
     SAVE_POST_STATUSES,
     SEND_ACTIONS,
 } from "./constants.ts";
@@ -10,6 +12,22 @@ export type PipelineStage = (typeof PIPELINE_STAGES)[keyof typeof PIPELINE_STAGE
 export type SavePostStatus = (typeof SAVE_POST_STATUSES)[keyof typeof SAVE_POST_STATUSES];
 export type AuditVerdict = (typeof AUDIT_VERDICTS)[keyof typeof AUDIT_VERDICTS];
 export type SendAction = (typeof SEND_ACTIONS)[keyof typeof SEND_ACTIONS];
+export type RunType = (typeof RUN_TYPES)[keyof typeof RUN_TYPES];
+export type RunStatus = (typeof RUN_STATUSES)[keyof typeof RUN_STATUSES];
+
+export interface RunState {
+    type: RunType | null;
+    status: RunStatus;
+    stage: string;
+    logs: string[];
+    error: string;
+    startedAt: string;
+    finishedAt: string;
+}
+
+export interface JobView extends JobPostRecord {
+    id: string;
+}
 
 export interface JobPostRecord {
     authorName: string;

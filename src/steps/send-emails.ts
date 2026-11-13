@@ -15,7 +15,7 @@ import {
 } from "../constants.ts";
 import type { JobPostRecord, ProcessedRecord, SendAction, SenderAddress, SendSummary } from "../interfaces.ts";
 import { getTodayDate } from "../utils/date-utils.ts";
-import { isDuplicate } from "../utils/email-utils.ts";
+import { isDuplicate, isSamePost } from "../utils/email-utils.ts";
 import { readOptionalEnv, requireEnv } from "../utils/env-utils.ts";
 import { appendRecords, readJsonArray, writeJsonArray } from "../utils/json-store.ts";
 import { log } from "../utils/logger.ts";
@@ -70,7 +70,42 @@ export async function sendEmails(rawFilePath: string): Promise<SendSummary> {
     return summary;
 }
 
-// Runs after sending. Rewrites the raw file without the records that are now in processed-records.json.
+// Sends one drafted record right away. Used by the API when the user clicks send on a job.
+export async function sendSingleEmail(jobsFilePath: string, record: JobPostRecord): Promise<void> {
+    const resumeExists = existsSync(DATA_PATHS.RESUME_FILE);
+    if (!resumeExists) {
+        throw new Error("No resume found. Upload your resume before sending.");
+    }
+
+    const hasDraft = Boolean(record.subject && record.body);
+    if (!hasDraft) {
+        throw new Error("This job has no email draft yet.");
+    }
+
+    const processedRecords = readJsonArray<ProcessedRecord>(DATA_PATHS.PROCESSED_FILE);
+    const isAlreadyProcessed = isDuplicate(record, processedRecords);
+    if (isAlreadyProcessed) {
+        throw new Error("This recruiter was already emailed.");
+    }
+
+    const testRecipient = readOptionalEnv(ENV_KEYS.TEST_RECIPIENT);
+    const transporter = await createVerifiedTransporter();
+    const isSent = await deliverEmail(transporter, record, testRecipient);
+    if (!isSent) {
+        throw new Error("Gmail refused the message. Check logs/agent.log for the reason.");
+    }
+
+    markProcessed(record, testRecipient);
+
+    const isTestMode = testRecipient.length > 0;
+    if (isTestMode) return;
+
+    const records = readJsonArray<JobPostRecord>(jobsFilePath);
+    const remainingRecords = records.filter((existing) => !isSamePost(existing, record));
+    writeJsonArray(jobsFilePath, remainingRecords);
+}
+
+// Runs after sending. Rewrites the jobs file without the records that are now in processed-records.json.
 function removeProcessedRecords(rawFilePath: string, records: JobPostRecord[]): void {
     const processedRecords = readJsonArray<ProcessedRecord>(DATA_PATHS.PROCESSED_FILE);
     const remainingRecords: JobPostRecord[] = [];

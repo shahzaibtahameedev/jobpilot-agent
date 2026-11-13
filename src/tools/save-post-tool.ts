@@ -14,7 +14,7 @@ import {
 } from "../constants.ts";
 import type { JobPostRecord, ProcessedRecord, SavePostInput, SavePostResult, SavePostStatus } from "../interfaces.ts";
 import { extractEmailFromText, isValidEmail, normalizeEmail } from "../utils/email-utils.ts";
-import { appendRecords, getRawFilePath, readJsonArray } from "../utils/json-store.ts";
+import { appendRecords, getJobsFilePath, readJsonArray } from "../utils/json-store.ts";
 import { log } from "../utils/logger.ts";
 
 let processedEmails: Set<string> | null = null;
@@ -33,13 +33,13 @@ export const jobToolsServer = createSdkMcpServer({
 });
 
 export function savePost(input: SavePostInput): SavePostResult {
-    const rawFilePath = getRawFilePath();
-    const savedCount = readJsonArray<JobPostRecord>(rawFilePath).length;
+    const jobsFilePath = getJobsFilePath();
+    const savedCount = readJsonArray<JobPostRecord>(jobsFilePath).length;
     const record = buildRecord(input);
     const status = getSaveStatus(record);
     const isSaved = status === SAVE_POST_STATUSES.SAVED;
 
-    if (isSaved) appendRecords(rawFilePath, [record]);
+    if (isSaved) appendRecords(jobsFilePath, [record]);
 
     log(`[save_post] ${status}: ${record.authorName || "unknown author"} ${record.email}`);
     return { status, savedToday: isSaved ? savedCount + 1 : savedCount };

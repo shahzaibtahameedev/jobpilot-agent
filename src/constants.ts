@@ -8,15 +8,16 @@ const DATA_ROOT = path.join(PROJECT_ROOT, "data");
 
 // Created on startup. The browser profile is left out on purpose: its absence is what triggers the LinkedIn login.
 export const DATA_DIRS = {
-    RAW: path.join(DATA_ROOT, "raw"),
     PROCESSED: path.join(DATA_ROOT, "processed"),
     AMBIGUITY: path.join(DATA_ROOT, "ambiguity"),
     RESUME: path.join(DATA_ROOT, "resume"),
     PROFILE: path.join(DATA_ROOT, "profile"),
 } as const;
 
+export const LEGACY_RAW_DIR = path.join(DATA_ROOT, "raw");
+
 export const DATA_PATHS = {
-    RAW_DIR: DATA_DIRS.RAW,
+    JOBS_FILE: path.join(DATA_ROOT, "jobs.json"),
     PROCESSED_FILE: path.join(DATA_DIRS.PROCESSED, "processed-records.json"),
     SKIPPED_FILE: path.join(DATA_DIRS.PROCESSED, "skipped.json"),
     MISSING_FILE: path.join(DATA_DIRS.AMBIGUITY, "missing.json"),
@@ -34,7 +35,7 @@ export const LOG_PATHS = {
     PLAYWRIGHT_OUTPUT: path.join(PROJECT_ROOT, "logs", "playwright"),
 } as const;
 
-export const RAW_FILE = {
+export const LEGACY_RAW_FILE = {
     PREFIX: "linkedin-",
     EXTENSION: ".json",
 } as const;
@@ -57,8 +58,39 @@ export const ENV_PLACEHOLDER_MARKER = "paste-your";
 
 export const OPENROUTER = {
     BASE_URL: "https://openrouter.ai/api",
+    KEY_URL: "https://openrouter.ai/api/v1/key",
     DEFAULT_MODEL: "google/gemma-4-31b-it:free",
 } as const;
+
+export const SERVER = {
+    DEFAULT_PORT: 3000,
+    PORT_ENV_KEY: "PORT",
+    HOSTNAME: "127.0.0.1",
+    CLIENT_DIST_DIR: path.join(PROJECT_ROOT, "client", "dist", "client", "browser"),
+    CLIENT_INDEX_FILE: "index.html",
+    API_BASE: "/api",
+} as const;
+
+export const RUN_TYPES = {
+    FIND_JOBS: "find-jobs",
+    SESSION: "session",
+} as const;
+
+export const RUN_STATUSES = {
+    IDLE: "idle",
+    RUNNING: "running",
+    COMPLETED: "completed",
+    FAILED: "failed",
+} as const;
+
+export const RUN_STAGES = {
+    SCRAPE: "Scraping LinkedIn posts",
+    AUDIT: "Auditing records",
+    WRITE: "Drafting emails",
+    SESSION: "Waiting for the LinkedIn window",
+} as const;
+
+export const RUN_LOG_LIMIT = 200;
 
 export const DEFAULT_SEARCH_QUERY = `"HR" AND ("Trainee" OR "Fresh Graduate") AND "Karachi"`;
 
@@ -166,8 +198,8 @@ export const BLOCKED_PLAYWRIGHT_TOOLS = [
 
 export const TOOL_DESCRIPTIONS = {
     SAVE_POST:
-        "Save one LinkedIn hiring post to today's raw file. It skips internship posts and recruiters " +
-        "who were already emailed. Returns the save status and how many posts are saved today.",
+        "Save one LinkedIn hiring post to the jobs file. It skips internship posts and recruiters " +
+        "who were already emailed. Returns the save status and how many posts are saved in this run.",
 } as const;
 
 export const SAVE_POST_INPUT_SCHEMA = {

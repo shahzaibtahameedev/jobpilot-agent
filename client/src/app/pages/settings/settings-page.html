@@ -1,0 +1,108 @@
+<div class="flex h-full flex-col gap-5 p-6">
+  <div>
+    <h1 class="font-display text-xl font-semibold text-ink-100">Settings</h1>
+    <p class="mt-0.5 text-sm text-ink-400">Your profile, the email template and the resume that gets attached to every email.</p>
+  </div>
+
+  <div class="flex gap-1 border-b border-ink-700">
+    <button type="button" (click)="onSelectTab('profile')"
+            class="border-b-2 px-4 py-2.5 text-sm font-medium transition"
+            [class]="activeTab() === 'profile' ? 'border-glow-500 text-glow-300' : 'border-transparent text-ink-400 hover:text-ink-100'">
+      Profile
+    </button>
+    <button type="button" (click)="onSelectTab('template')"
+            class="border-b-2 px-4 py-2.5 text-sm font-medium transition"
+            [class]="activeTab() === 'template' ? 'border-glow-500 text-glow-300' : 'border-transparent text-ink-400 hover:text-ink-100'">
+      Email template
+    </button>
+    <button type="button" (click)="onSelectTab('resume')"
+            class="border-b-2 px-4 py-2.5 text-sm font-medium transition"
+            [class]="activeTab() === 'resume' ? 'border-glow-500 text-glow-300' : 'border-transparent text-ink-400 hover:text-ink-100'">
+      Resume
+    </button>
+  </div>
+
+  <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+    @switch (activeTab()) {
+      @case ('profile') {
+        <div class="flex max-w-3xl flex-col gap-5">
+          <div class="panel p-5">
+            <h2 class="text-sm font-semibold text-ink-100">Profile</h2>
+            <p class="mb-3 mt-1 text-xs text-ink-400">The email writer agent reads this to decide whether a post fits you. Keep it honest and specific.</p>
+            <textarea rows="14" class="field resize-y font-mono text-[13px] leading-relaxed" [value]="profileText()" (input)="onProfileInput($event)"></textarea>
+          </div>
+
+          <div class="panel p-5">
+            <h2 class="text-sm font-semibold text-ink-100">Signature</h2>
+            <p class="mb-3 mt-1 text-xs text-ink-400">Appended at the end of every email body.</p>
+            <textarea rows="5" class="field resize-y font-mono text-[13px] leading-relaxed" [value]="signatureText()" (input)="onSignatureInput($event)"></textarea>
+          </div>
+
+          <div class="flex justify-end">
+            <button type="button" class="btn-primary" (click)="onSaveProfile()" [disabled]="isProfileSaving()">
+              @if (isProfileSaving()) { Saving... } @else { Save profile }
+            </button>
+          </div>
+        </div>
+      }
+      @case ('template') {
+        <div class="flex max-w-3xl flex-col gap-5">
+          <div class="panel p-5">
+            <h2 class="text-sm font-semibold text-ink-100">Email template</h2>
+            <p class="mb-3 mt-1 text-xs text-ink-400">
+              Used as the body of every drafted email. These placeholders are filled per post and must stay in the text:
+            </p>
+            <div class="mb-4 flex flex-wrap gap-2">
+              @for (placeholder of placeholders(); track placeholder) {
+                <code class="rounded-md bg-ink-900 px-2.5 py-1 text-xs text-glow-300">{{ placeholder }}</code>
+              }
+            </div>
+            <textarea rows="14" class="field resize-y font-mono text-[13px] leading-relaxed" [value]="templateText()" (input)="onTemplateInput($event)"></textarea>
+          </div>
+
+          <div class="flex justify-end">
+            <button type="button" class="btn-primary" (click)="onSaveTemplate()" [disabled]="isTemplateSaving()">
+              @if (isTemplateSaving()) { Saving... } @else { Save template }
+            </button>
+          </div>
+        </div>
+      }
+      @case ('resume') {
+        <div class="max-w-3xl">
+          <div class="panel p-5">
+            <h2 class="text-sm font-semibold text-ink-100">Resume</h2>
+            <p class="mb-4 mt-1 text-xs text-ink-400">Attached as resume.pdf to every email you send.</p>
+
+            @if (resumeMeta(); as meta) {
+              @if (meta.exists) {
+                <div class="mb-4 flex items-center justify-between rounded-lg bg-ink-900 p-4">
+                  <div class="flex items-center gap-3">
+                    <svg class="h-7 w-7 text-rose-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg>
+                    <div>
+                      <p class="text-sm font-medium text-ink-100">resume.pdf</p>
+                      <p class="text-xs text-ink-400">{{ formatSize(meta.sizeBytes) }} · updated {{ formatDate(meta.updatedAt) }}</p>
+                    </div>
+                  </div>
+                  <a href="/api/resume/file" target="_blank" rel="noopener" class="btn-ghost">Open</a>
+                </div>
+              } @else {
+                <div class="mb-4 rounded-lg border border-glow-600/40 bg-glow-500/10 p-4 text-sm text-glow-300">
+                  No resume uploaded yet. Emails cannot be sent until one is in place.
+                </div>
+              }
+            }
+
+            <label class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-ink-600 p-8 text-center transition hover:border-glow-500">
+              <svg class="h-7 w-7 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg>
+              <span class="text-sm font-medium text-ink-200">
+                @if (isResumeUploading()) { Uploading... } @else { Click to upload a new PDF }
+              </span>
+              <span class="text-xs text-ink-400">PDF only, up to 10 MB. Replaces the current file.</span>
+              <input type="file" accept="application/pdf" class="hidden" (change)="onResumeSelected($event)" [disabled]="isResumeUploading()" />
+            </label>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>
