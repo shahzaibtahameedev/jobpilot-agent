@@ -21,6 +21,19 @@ export interface ProcessedRecord {
   processedDate: string;
 }
 
+export interface SkippedRecord {
+  authorName: string;
+  email: string;
+  companyName: string;
+  postContent: string;
+  postUrl: string;
+  isMatch?: boolean;
+  skipReason?: string;
+  subject?: string;
+  body?: string;
+  skippedDate: string;
+}
+
 export type RunType = 'find-jobs' | 'draft-all' | 'draft-job' | 'session';
 export type RunStatus = 'idle' | 'running' | 'completed' | 'failed';
 

@@ -20,7 +20,7 @@ import {
     STEP_NAMES,
 } from "../constants.ts";
 import { runStartupChecks } from "../index.ts";
-import type { JobPostRecord, JobView, ProcessedRecord, SearchQueryView } from "../interfaces.ts";
+import type { JobPostRecord, JobView, ProcessedRecord, SearchQueryView, SkippedRecord } from "../interfaces.ts";
 import { auditRecords } from "../steps/audit-records.ts";
 import { saveLinkedInSession } from "../steps/save-linkedin-session.ts";
 import { sendSingleEmail } from "../steps/send-emails.ts";
@@ -211,6 +211,13 @@ app.get(`${SERVER.API_BASE}/processed`, (c) => {
     const newestFirst = records.slice().reverse();
 
     return c.json({ processed: newestFirst });
+});
+
+app.get(`${SERVER.API_BASE}/skipped`, (c) => {
+    const records = readJsonArray<SkippedRecord>(DATA_PATHS.SKIPPED_FILE);
+    const newestFirst = records.slice().reverse();
+
+    return c.json({ skipped: newestFirst });
 });
 
 app.get(`${SERVER.API_BASE}/runs/current`, (c) => {

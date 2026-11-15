@@ -46,7 +46,7 @@ It runs entirely on your machine. Nothing is uploaded anywhere except the model 
 - ✍️ **Fit check and drafting** — a second agent decides whether each post matches your profile. Misfits are skipped and never emailed, each with a one-line reason recorded; matches get a subject line and a body built from your own template.
 - 📬 **Review before sending** — every draft is editable in the app. Nothing leaves your Gmail until you click Send.
 - 📎 **Resume attached automatically** — your PDF goes out with every email.
-- 📁 **Sent history** — a searchable record of every email already sent, so the same recruiter is never contacted twice.
+- 📁 **Results history** — a searchable record of every email already sent, so the same recruiter is never contacted twice, plus every skipped post with the reason it was skipped.
 - ⚙️ **Everything editable in the UI** — profile, signature, email template and resume, all from the Settings page.
 - ⚡ **Free-tier aware** — a built-in check shows how many free OpenRouter requests your key has left today.
 
@@ -59,7 +59,7 @@ In plain words, the full journey:
 3. **The audit step cleans the list.** Posts from recruiters you already emailed are removed, and posts with no email address are moved to a "missing" file for you to look at by hand.
 4. **The email writer agent reads each post.** It judges whether the role fits the profile you wrote. If it does not fit, the post is moved to a skipped file with a short reason (`skipReason`) and is never emailed. If it does, the agent produces a subject line and the placeholders your template needs.
 5. **You review each draft.** Open a job in the app, edit the subject and body if you want, and click Send. The email goes out through your Gmail with your resume attached.
-6. **The record moves to Processed.** That recruiter will not come up again in a future run.
+6. **The record moves to Results.** That recruiter will not come up again in a future run.
 
 ```mermaid
 flowchart LR
@@ -85,7 +85,7 @@ Every stage reads and writes the same `data/jobs.json` file, so you can stop aft
     <td width="50%"><img src="docs/screenshots/job-editor.png" alt="Email editor showing an editable subject and body next to the job list" /><p align="center"><b>Review</b> — edit the subject and body, then send</p></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/processed.png" alt="Processed page listing previously sent emails with a search box" /><p align="center"><b>Processed</b> — searchable history of sent emails</p></td>
+    <td width="50%"><img src="docs/screenshots/processed.png" alt="Results page listing previously sent emails with a search box" /><p align="center"><b>Results</b> — sent emails, and skipped posts with their reason</p></td>
     <td width="50%"><img src="docs/screenshots/settings.png" alt="Settings page showing the candidate profile and signature editors" /><p align="center"><b>Settings</b> — profile, template and resume</p></td>
   </tr>
 </table>
@@ -201,7 +201,7 @@ Sign in to LinkedIn in Chrome, open DevTools → Application → Cookies → `ht
 
 **Jobs** is the main page, and it works in two steps. Click **Find Jobs** to run scrape → audit, with the current stage and live log shown as it goes; every refined post is then listed on the left, tagged *Needs draft*. Drafting is separate, so a scrape that dies never costs you the drafts: click **Draft all** to draft every pending job in one run, or open a single job and click **Draft this email** for just that one. Once a job has a draft you can edit the subject or body and then **Save draft**, **Send email**, or **Redraft** to regenerate it from scratch. The active search query is shown above the buttons with an **Edit** link.
 
-**Processed** lists every email already sent, newest first, searchable by company, recruiter, address or subject.
+**Results** has two views behind a toggle. *Sent* lists every email already sent, newest first, searchable by company, recruiter, address or subject; expand one to read the body that went out. *Skipped* lists the posts the writer judged a poor fit, each showing the reason it gave, searchable by company, address or reason; expand one to read the original post. Records skipped before reasons were recorded show "No reason recorded".
 
 **Settings** has four tabs: *Search query* (an interactive builder: terms inside a group are joined by that group's AND/OR and wrapped in brackets, the groups are joined by the top-level operator, and a preview shows the exact string sent to LinkedIn), *Profile* (the candidate profile the fit check reads, plus your signature), *Email template* (the placeholders `{{positionName}}`, `{{companyName}}` and `{{recruiterName}}` are required and the server rejects a template missing any of them) and *Resume* (upload a PDF, up to 10 MB).
 
@@ -253,6 +253,7 @@ All routes are served under `/api` by the Hono server on port 3000.
 | `PUT` | `/api/jobs/:id` | Save an edited subject and body |
 | `POST` | `/api/jobs/:id/send` | Send one job's email, with optional overrides |
 | `GET` | `/api/processed` | Sent history, newest first |
+| `GET` | `/api/skipped` | Skipped posts with their reason, newest first |
 | `GET` | `/api/runs/current` | Status, stage, logs and error of the active run |
 | `POST` | `/api/jobs/:id/draft` | Draft or redraft one job's email |
 | `POST` | `/api/runs/find-jobs` | Start scrape → audit |

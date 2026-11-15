@@ -9,6 +9,7 @@ import type {
   SearchQueryConfig,
   SearchQueryResponse,
   SearchQueryView,
+  SkippedRecord,
   TemplateResponse,
 } from './models';
 
@@ -55,6 +56,12 @@ export class ApiService {
     const payload = await this.request<{ processed: ProcessedRecord[] }>(`${API_BASE}/processed`);
 
     return payload.processed;
+  }
+
+  async getSkipped(): Promise<SkippedRecord[]> {
+    const payload = await this.request<{ skipped: SkippedRecord[] }>(`${API_BASE}/skipped`);
+
+    return payload.skipped;
   }
 
   async getCurrentRun(): Promise<RunState> {
