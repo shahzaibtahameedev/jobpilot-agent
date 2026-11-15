@@ -1,12 +1,14 @@
 Dear {{recruiterName}},
 
-I am writing to apply for the {{positionName}} role at {{companyName}}. I am a fresh BBA graduate from SZABIST (3.5 CGPA) with a focus on HR and Analytics.
+I am writing to apply for the {{positionName}} role at {{companyName}}. 
+
+I hold a BS in Accounting & Finance from IBA and have 2+ years of experience in FP&A, costing and budgeting, and corporate accounting.
 
 Experience:
-• Pakistan Petroleum Limited, HR Intern: supported the end to end recruitment cycle, managed candidate data in SAP SuccessFactors, and prepared evaluation packs for interview panels.
-• IGI Life Insurance, HR Intern: assisted with screening and interview scheduling for 15+ candidates and maintained verification records for 50+ employees.
-• Soorty Enterprises, HR Capstone: job analysis, competency assessment, and performance management using the 70:20:10, Kirkpatrick, and GROW models.
+• Cybernet, Costing & Budgeting Specialist: Conducted investment appraisals for 50+ customers and 5+ infrastructure projects, managed PKR 200M+ in budgeting and CAPEX evaluations, and performed cost and pricing analysis.
+• ClearCloud (MTBC), FP&A Analyst: Developed automated financial models for budgeting and forecasting, built 5+ Power BI dashboards, and contributed to a strategic investment valuation of 40M+.
+• Contour Software, Assistant Accountant: Managed PKR 30–40M in monthly cash flows, completed 100+ bank and AR reconciliations, and supported financial reporting and month-end closing.
 
-Skills: Recruitment and Talent Acquisition, CV Screening, Interview Coordination, SAP SuccessFactors, HR Analytics, Performance Management.
+Skills: FP&A, Financial Modelling, Budgeting & Forecasting, Variance Analysis, Cost & Pricing Analysis, Investment Appraisal, CAPEX Evaluation, Advanced Excel, Power BI, SAP.
 
 My resume is attached. I would love to contribute the team at {{companyName}}.

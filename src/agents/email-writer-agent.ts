@@ -6,7 +6,10 @@ import {
     DATA_PATHS,
     DRAFT_STATUSES,
     EMAIL_DETAILS_SCHEMA,
+    NOT_AVAILABLE_VALUE,
     PROFILE_PLACEHOLDER_MARKER,
+    SKIP_REASON_FALLBACK,
+    TEXT_CLEANUP_PATTERNS,
 } from "../constants.ts";
 import type {
     DraftContext,
@@ -89,8 +92,11 @@ async function applyDraft(record: JobPostRecord, context: DraftContext): Promise
     }
 
     if (!details.isMatch) {
+        const skipReason = readSkipReason(details.reason);
         record.isMatch = false;
-        log(`[${AGENT_NAMES.EMAIL_WRITER}] ${record.email}: post is not a match for the profile`);
+        record.skipReason = skipReason;
+        log(`[${AGENT_NAMES.EMAIL_WRITER}] ${record.email}: not a match, ${skipReason}`);
+
         return DRAFT_STATUSES.MISMATCH;
     }
 
@@ -108,6 +114,14 @@ async function applyDraft(record: JobPostRecord, context: DraftContext): Promise
     log(`[${AGENT_NAMES.EMAIL_WRITER}] drafted "${subject}" for ${record.email}`);
 
     return DRAFT_STATUSES.DRAFTED;
+}
+
+function readSkipReason(reason: string): string {
+    const collapsed = reason.replace(TEXT_CLEANUP_PATTERNS.ALL_WHITESPACE, " ").trim();
+    const isMissing = collapsed.length === 0 || collapsed.toLowerCase() === NOT_AVAILABLE_VALUE;
+    if (isMissing) return SKIP_REASON_FALLBACK;
+
+    return collapsed;
 }
 
 function readDraftContext(): DraftContext {
@@ -134,6 +148,7 @@ function moveSkippedRecords(rawFilePath: string, records: JobPostRecord[]): void
                 postContent: record.postContent,
                 postUrl: record.postUrl,
                 isMatch: record.isMatch,
+                skipReason: record.skipReason,
                 subject: record.subject,
                 body: record.body,
                 skippedDate: today,

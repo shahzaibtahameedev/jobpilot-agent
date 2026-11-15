@@ -3,6 +3,7 @@ import {
     EMAIL_TEMPLATE_FALLBACKS,
     EMAIL_TEMPLATE_PLACEHOLDERS,
     EXACT_EMAIL_PATTERN,
+    NOT_AVAILABLE_VALUE,
     RECORD_FINGERPRINT_CHARS,
     TEXT_CLEANUP_PATTERNS,
 } from "../constants.ts";
@@ -102,11 +103,10 @@ export function renderEmailTemplate(template: string, values: EmailTemplateValue
 }
 
 function cleanTemplateValue(value: string): string {
-    let cleanUpValue = value.replace(TEXT_CLEANUP_PATTERNS.ALL_WHITESPACE, " ").trim();
+    const cleanedValue = value.replace(TEXT_CLEANUP_PATTERNS.ALL_WHITESPACE, " ").trim();
 
-    if(cleanUpValue?.toLowerCase() == 'n/a'){
-        return '';
-    }
+    const isNotAvailable = cleanedValue.toLowerCase() === NOT_AVAILABLE_VALUE;
+    if (isNotAvailable) return "";
 
-    return cleanUpValue;
+    return cleanedValue;
 }

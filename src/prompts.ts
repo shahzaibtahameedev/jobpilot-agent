@@ -52,7 +52,9 @@ Decide isMatch using the profile's own target roles and background:
 - false if the post names no concrete role, for example "multiple positions" or "fresh graduates".
 - false if the post states a hard requirement the profile clearly does not meet, such as a required degree, certification or years of experience.
 
-When isMatch is false, return 'N/A' for every other field. Otherwise:
+Always fill reason: when isMatch is false, one short sentence naming the specific disqualifier, for example 'Marketing role, outside the profile's field' or 'Asks for 8+ years, the profile has 2'. 'N/A' when isMatch is true.
+
+When isMatch is false, return 'N/A' for the remaining fields. Otherwise:
 - subject: use the post's requested subject line exactly if it gives one. Otherwise the role and the candidate's name from the profile, for example 'Application for Financial Analyst, Jane Doe'. No dashes.
 - positionName: the role title as written in the post, picking the one the profile fits. Title only, no location, shift, stipend, emojis or dashes. 'N/A' if no clear title.
 - companyName: the hiring company. For a recruiter or agency posting on behalf of a named client, use the client. 'N/A' if unclear, never invented.

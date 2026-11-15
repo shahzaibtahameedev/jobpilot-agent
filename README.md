@@ -43,7 +43,7 @@ It runs entirely on your machine. Nothing is uploaded anywhere except the model 
 
 - 🔎 **Agentic scraping** — a Claude agent browses LinkedIn through Playwright MCP, scrolls the posts search, and saves hiring posts in a structured format (author, company, recruiter email, post text, post link).
 - 🧹 **Automatic auditing** — duplicates and recruiters you already emailed are dropped; posts with no readable email are parked in a separate file instead of silently lost.
-- ✍️ **Fit check and drafting** — a second agent decides whether each post matches your profile. Misfits are skipped and never emailed; matches get a subject line and a body built from your own template.
+- ✍️ **Fit check and drafting** — a second agent decides whether each post matches your profile. Misfits are skipped and never emailed, each with a one-line reason recorded; matches get a subject line and a body built from your own template.
 - 📬 **Review before sending** — every draft is editable in the app. Nothing leaves your Gmail until you click Send.
 - 📎 **Resume attached automatically** — your PDF goes out with every email.
 - 📁 **Sent history** — a searchable record of every email already sent, so the same recruiter is never contacted twice.
@@ -57,7 +57,7 @@ In plain words, the full journey:
 1. **You sign in to LinkedIn once.** The app opens a Chrome window using your `li_at` cookie and keeps that browser profile on disk, so later runs are already signed in.
 2. **You click Find Jobs.** The scraper agent opens the LinkedIn posts search for your query (sorted by top match, limited to the past week), scrolls through up to 30 posts, and saves every hiring post that mentions words like "resume", "apply" or "hiring". Internship posts are skipped. Drafting is a separate click, so the posts are safe even if the scrape is interrupted.
 3. **The audit step cleans the list.** Posts from recruiters you already emailed are removed, and posts with no email address are moved to a "missing" file for you to look at by hand.
-4. **The email writer agent reads each post.** It judges whether the role fits the profile you wrote. If it does not fit, the post is moved to a skipped file and is never emailed. If it does, the agent produces a subject line and the placeholders your template needs.
+4. **The email writer agent reads each post.** It judges whether the role fits the profile you wrote. If it does not fit, the post is moved to a skipped file with a short reason (`skipReason`) and is never emailed. If it does, the agent produces a subject line and the placeholders your template needs.
 5. **You review each draft.** Open a job in the app, edit the subject and body if you want, and click Send. The email goes out through your Gmail with your resume attached.
 6. **The record moves to Processed.** That recruiter will not come up again in a future run.
 
@@ -233,7 +233,7 @@ The CLI's `send` stage mails every ready draft without asking. If you want to ap
 | `data/jobs.json` | The working set: posts found, audited and drafted but not yet sent |
 | `data/search-query.json` | The LinkedIn search query, as groups of terms with their AND/OR operators |
 | `data/processed/processed-records.json` | Every email actually sent, with the date |
-| `data/processed/skipped.json` | Posts the writer judged a poor fit; never emailed |
+| `data/processed/skipped.json` | Posts the writer judged a poor fit, each with a `skipReason`; never emailed |
 | `data/ambiguity/missing.json` | Posts with no readable recruiter email, for manual review |
 | `data/profile/profile.md` | The candidate profile the fit check reads |
 | `data/profile/email-template.txt` | The email body template with its three placeholders |

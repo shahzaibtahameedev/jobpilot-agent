@@ -286,13 +286,14 @@ export const SCRAPER_OUTPUT_SCHEMA = {
 export const EMAIL_DETAILS_SCHEMA = {
     type: "object",
     properties: {
-        isMatch: { type: "boolean", description: "True only if the post offers an HR role that fits the candidate profile" },
+        isMatch: { type: "boolean", description: "True only if the post offers a role that fits the candidate profile" },
+        reason: { type: "string", description: "One short sentence naming why the post is not a match, or 'N/A' when isMatch is true" },
         subject: { type: "string", description: "Short, specific subject line with no dashes, or an empty string if isMatch is false" },
         positionName: { type: "string", description: "Role title from the post, or an empty string if unclear" },
         companyName: { type: "string", description: "Hiring company name, or an empty string if unclear" },
         recruiterName: { type: "string", description: "Name of the person who owns the recruiter email, or an empty string" },
     },
-    required: ["isMatch", "subject", "positionName", "companyName", "recruiterName"],
+    required: ["isMatch", "reason", "subject", "positionName", "companyName", "recruiterName"],
     additionalProperties: false,
 } as const;
 
@@ -391,6 +392,9 @@ export const RESUME_ATTACHMENT_NAME = "resume.pdf";
 export const TEST_SUBJECT_PREFIX = "[TEST to";
 
 export const PROFILE_PLACEHOLDER_MARKER = "[FILL IN";
+
+export const NOT_AVAILABLE_VALUE = "n/a";
+export const SKIP_REASON_FALLBACK = "no reason given";
 
 export const EMAIL_PATTERN = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/;
 export const EXACT_EMAIL_PATTERN = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;

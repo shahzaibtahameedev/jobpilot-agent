@@ -54,6 +54,7 @@ export interface JobPostRecord {
     postContent: string;
     postUrl: string;
     isMatch?: boolean;
+    skipReason?: string;
     subject?: string;
     body?: string;
 }
@@ -91,6 +92,7 @@ export interface ScraperResult {
 
 export interface EmailDetails {
     isMatch: boolean;
+    reason: string;
     subject: string;
     positionName: string;
     companyName: string;
