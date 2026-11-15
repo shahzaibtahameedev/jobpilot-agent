@@ -1,10 +1,15 @@
 <div class="flex h-full flex-col gap-5 p-6">
   <div>
     <h1 class="font-display text-xl font-semibold text-ink-100">Settings</h1>
-    <p class="mt-0.5 text-sm text-ink-400">Your profile, the email template and the resume that gets attached to every email.</p>
+    <p class="mt-0.5 text-sm text-ink-400">The search query, your profile, the email template and the resume that gets attached to every email.</p>
   </div>
 
   <div class="flex gap-1 border-b border-ink-700">
+    <button type="button" (click)="onSelectTab('search-query')"
+            class="border-b-2 px-4 py-2.5 text-sm font-medium transition"
+            [class]="activeTab() === 'search-query' ? 'border-glow-500 text-glow-300' : 'border-transparent text-ink-400 hover:text-ink-100'">
+      Search query
+    </button>
     <button type="button" (click)="onSelectTab('profile')"
             class="border-b-2 px-4 py-2.5 text-sm font-medium transition"
             [class]="activeTab() === 'profile' ? 'border-glow-500 text-glow-300' : 'border-transparent text-ink-400 hover:text-ink-100'">
@@ -24,6 +29,9 @@
 
   <div class="min-h-0 flex-1 overflow-y-auto pr-1">
     @switch (activeTab()) {
+      @case ('search-query') {
+        <app-query-builder />
+      }
       @case ('profile') {
         <div class="flex max-w-3xl flex-col gap-5">
           <div class="panel p-5">

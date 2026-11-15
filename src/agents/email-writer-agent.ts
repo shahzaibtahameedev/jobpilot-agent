@@ -1,61 +1,122 @@
 import { existsSync } from "node:fs";
 import { runAgent } from "../agent-sdk.ts";
-import { AGENT_LIMITS, AGENT_NAMES, DATA_PATHS, EMAIL_DETAILS_SCHEMA, PROFILE_PLACEHOLDER_MARKER } from "../constants.ts";
-import type { EmailDetails, JobPostRecord, SkippedRecord, WriteSummary } from "../interfaces.ts";
+import {
+    AGENT_LIMITS,
+    AGENT_NAMES,
+    DATA_PATHS,
+    DRAFT_STATUSES,
+    EMAIL_DETAILS_SCHEMA,
+    PROFILE_PLACEHOLDER_MARKER,
+} from "../constants.ts";
+import type {
+    DraftContext,
+    DraftStatus,
+    EmailDetails,
+    JobPostRecord,
+    SkippedRecord,
+    WriteSummary,
+} from "../interfaces.ts";
 import { buildEmailTaskPrompt, EMAIL_WRITER_SYSTEM_PROMPT } from "../prompts.ts";
 import { getTodayDate } from "../utils/date-utils.ts";
-import { renderEmailTemplate, sanitizeText } from "../utils/email-utils.ts";
+import { findJobIndexById, hasEmailDraft, renderEmailTemplate, sanitizeText } from "../utils/email-utils.ts";
 import { appendRecords, readJsonArray, readTextFile, writeJsonArray } from "../utils/json-store.ts";
 import { log } from "../utils/logger.ts";
 
 export async function runEmailWriterAgent(rawFilePath: string): Promise<WriteSummary> {
-    const profile = readProfileFile(DATA_PATHS.PROFILE_FILE);
-    const signature = readProfileFile(DATA_PATHS.SIGNATURE_FILE);
-    const template = readProfileFile(DATA_PATHS.EMAIL_TEMPLATE_FILE);
+    const context = readDraftContext();
     const records = readJsonArray<JobPostRecord>(rawFilePath);
     const summary: WriteSummary = { drafted: 0, mismatched: 0, skipped: 0, failed: 0 };
 
     for (const record of records) {
         const isMarkedMismatch = record.isMatch === false;
-        const hasDraft = Boolean(record.subject && record.body);
-        if (isMarkedMismatch || hasDraft) {
+        const isDrafted = hasEmailDraft(record);
+        if (isMarkedMismatch || isDrafted) {
             summary.skipped++;
             continue;
         }
 
-        const details = await extractEmailDetails(record, profile);
-        if (details === null) {
-            summary.failed++;
-            log(`[${AGENT_NAMES.EMAIL_WRITER}] could not read the post details for ${record.email}`);
-            continue;
+        const status = await applyDraft(record, context);
+        switch (status) {
+            case DRAFT_STATUSES.DRAFTED:
+                summary.drafted++;
+                writeJsonArray(rawFilePath, records);
+                break;
+            case DRAFT_STATUSES.MISMATCH:
+                summary.mismatched++;
+                writeJsonArray(rawFilePath, records);
+                break;
+            case DRAFT_STATUSES.FAILED:
+                summary.failed++;
+                break;
         }
-
-        if (!details.isMatch) {
-            record.isMatch = false;
-            writeJsonArray(rawFilePath, records);
-            summary.mismatched++;
-            log(`[${AGENT_NAMES.EMAIL_WRITER}] ${record.email}: post is not a match for the profile`);
-            continue;
-        }
-
-        const subject = sanitizeText(details.subject);
-        if (subject.length === 0) {
-            summary.failed++;
-            log(`[${AGENT_NAMES.EMAIL_WRITER}] no subject returned for ${record.email}`);
-            continue;
-        }
-
-        record.isMatch = true;
-        record.subject = subject;
-        record.body = `${renderEmailTemplate(template, details)}\n\n${signature}`;
-        writeJsonArray(rawFilePath, records);
-        summary.drafted++;
-        log(`[${AGENT_NAMES.EMAIL_WRITER}] drafted "${record.subject}" for ${record.email}`);
     }
 
     moveSkippedRecords(rawFilePath, records);
     log(`[${AGENT_NAMES.EMAIL_WRITER}] emails drafted ${summary.drafted}, not a match ${summary.mismatched}, skipped ${summary.skipped}, failed ${summary.failed}`);
     return summary;
+}
+
+// Redrafts one job even when it already has a draft, so the UI can offer a regenerate action.
+export async function runEmailWriterForJob(rawFilePath: string, jobId: string): Promise<DraftStatus> {
+    const context = readDraftContext();
+    const records = readJsonArray<JobPostRecord>(rawFilePath);
+    const jobIndex = findJobIndexById(records, jobId);
+
+    const isMissing = jobIndex < 0;
+    if (isMissing) {
+        throw new Error("That job is no longer in the jobs file.");
+    }
+
+    const record = records[jobIndex];
+    const status = await applyDraft(record, context);
+
+    const isFailed = status === DRAFT_STATUSES.FAILED;
+    if (isFailed) return status;
+
+    writeJsonArray(rawFilePath, records);
+    moveSkippedRecords(rawFilePath, records);
+
+    return status;
+}
+
+async function applyDraft(record: JobPostRecord, context: DraftContext): Promise<DraftStatus> {
+    const details = await extractEmailDetails(record, context.profile);
+
+    const isUnreadable = details === null;
+    if (isUnreadable) {
+        log(`[${AGENT_NAMES.EMAIL_WRITER}] could not read the post details for ${record.email}`);
+        return DRAFT_STATUSES.FAILED;
+    }
+
+    if (!details.isMatch) {
+        record.isMatch = false;
+        log(`[${AGENT_NAMES.EMAIL_WRITER}] ${record.email}: post is not a match for the profile`);
+        return DRAFT_STATUSES.MISMATCH;
+    }
+
+    const subject = sanitizeText(details.subject);
+    const hasSubject = subject.length > 0;
+    if (!hasSubject) {
+        log(`[${AGENT_NAMES.EMAIL_WRITER}] no subject returned for ${record.email}`);
+        return DRAFT_STATUSES.FAILED;
+    }
+
+    const renderedTemplate = renderEmailTemplate(context.template, details);
+    record.isMatch = true;
+    record.subject = subject;
+    record.body = `${renderedTemplate}\n\n${context.signature}`;
+    log(`[${AGENT_NAMES.EMAIL_WRITER}] drafted "${subject}" for ${record.email}`);
+
+    return DRAFT_STATUSES.DRAFTED;
+}
+
+function readDraftContext(): DraftContext {
+    const profile = readProfileFile(DATA_PATHS.PROFILE_FILE);
+    const signature = readProfileFile(DATA_PATHS.SIGNATURE_FILE);
+    const template = readProfileFile(DATA_PATHS.EMAIL_TEMPLATE_FILE);
+    const context: DraftContext = { profile, signature, template };
+
+    return context;
 }
 
 function moveSkippedRecords(rawFilePath: string, records: JobPostRecord[]): void {
@@ -66,7 +127,19 @@ function moveSkippedRecords(rawFilePath: string, records: JobPostRecord[]): void
     for (const record of records) {
         const isMismatch = record.isMatch === false;
         if (isMismatch) {
-            skippedRecords.push({ ...record, skippedDate: today });
+            const skippedRecord: SkippedRecord = {
+                authorName: record.authorName,
+                email: record.email,
+                companyName: record.companyName,
+                postContent: record.postContent,
+                postUrl: record.postUrl,
+                isMatch: record.isMatch,
+                subject: record.subject,
+                body: record.body,
+                skippedDate: today,
+            };
+
+            skippedRecords.push(skippedRecord);
         } else {
             remainingRecords.push(record);
         }

@@ -21,8 +21,29 @@ export interface ProcessedRecord {
   processedDate: string;
 }
 
-export type RunType = 'find-jobs' | 'session';
+export type RunType = 'find-jobs' | 'draft-all' | 'draft-job' | 'session';
 export type RunStatus = 'idle' | 'running' | 'completed' | 'failed';
+
+export type SearchOperator = 'AND' | 'OR';
+
+export interface SearchQueryGroup {
+  operator: SearchOperator;
+  terms: string[];
+}
+
+export interface SearchQueryConfig {
+  groupOperator: SearchOperator;
+  groups: SearchQueryGroup[];
+}
+
+export interface SearchQueryView extends SearchQueryConfig {
+  query: string;
+}
+
+export interface SearchQueryResponse {
+  searchQuery: SearchQueryView;
+  operators: SearchOperator[];
+}
 
 export interface RunState {
   type: RunType | null;

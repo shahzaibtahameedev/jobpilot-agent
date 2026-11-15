@@ -6,6 +6,9 @@ import type {
   ProfileResponse,
   ResumeMeta,
   RunState,
+  SearchQueryConfig,
+  SearchQueryResponse,
+  SearchQueryView,
   TemplateResponse,
 } from './models';
 
@@ -42,6 +45,12 @@ export class ApiService {
     });
   }
 
+  async draftJob(jobId: string): Promise<RunState> {
+    const runState = await this.request<RunState>(`${API_BASE}/jobs/${jobId}/draft`, { method: 'POST' });
+
+    return runState;
+  }
+
   async getProcessed(): Promise<ProcessedRecord[]> {
     const payload = await this.request<{ processed: ProcessedRecord[] }>(`${API_BASE}/processed`);
 
@@ -60,10 +69,32 @@ export class ApiService {
     return runState;
   }
 
+  async startDraftAll(): Promise<RunState> {
+    const runState = await this.request<RunState>(`${API_BASE}/runs/draft-all`, { method: 'POST' });
+
+    return runState;
+  }
+
   async startSession(): Promise<RunState> {
     const runState = await this.request<RunState>(`${API_BASE}/runs/session`, { method: 'POST' });
 
     return runState;
+  }
+
+  async getSearchQuery(): Promise<SearchQueryResponse> {
+    const payload = await this.request<SearchQueryResponse>(`${API_BASE}/search-query`);
+
+    return payload;
+  }
+
+  async saveSearchQuery(config: SearchQueryConfig): Promise<SearchQueryView> {
+    const payload = await this.request<{ searchQuery: SearchQueryView }>(`${API_BASE}/search-query`, {
+      method: 'PUT',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(config),
+    });
+
+    return payload.searchQuery;
   }
 
   async getTemplate(): Promise<TemplateResponse> {

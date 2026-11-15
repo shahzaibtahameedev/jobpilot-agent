@@ -31,6 +31,18 @@ export class RunService {
     this.ensurePolling();
   }
 
+  async startDraftAll(): Promise<void> {
+    const runState = await this.api.startDraftAll();
+    this.state.set(runState);
+    this.ensurePolling();
+  }
+
+  async startDraftJob(jobId: string): Promise<void> {
+    const runState = await this.api.draftJob(jobId);
+    this.state.set(runState);
+    this.ensurePolling();
+  }
+
   async startSession(): Promise<void> {
     const runState = await this.api.startSession();
     this.state.set(runState);

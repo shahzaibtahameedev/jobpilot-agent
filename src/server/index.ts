@@ -4,11 +4,10 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Hono } from "hono";
-import { runEmailWriterAgent } from "../agents/email-writer-agent.ts";
+import { runEmailWriterAgent, runEmailWriterForJob } from "../agents/email-writer-agent.ts";
 import { runScraperAgent } from "../agents/scraper-agent.ts";
 import {
     DATA_PATHS,
-    DEFAULT_SEARCH_QUERY,
     EMAIL_TEMPLATE_PLACEHOLDERS,
     ENV_KEYS,
     OPENROUTER,
@@ -16,18 +15,26 @@ import {
     RESUME_ATTACHMENT_NAME,
     RUN_STAGES,
     RUN_TYPES,
+    SEARCH_OPERATORS,
     SERVER,
     STEP_NAMES,
 } from "../constants.ts";
 import { runStartupChecks } from "../index.ts";
-import type { JobPostRecord, JobView, ProcessedRecord } from "../interfaces.ts";
+import type { JobPostRecord, JobView, ProcessedRecord, SearchQueryView } from "../interfaces.ts";
 import { auditRecords } from "../steps/audit-records.ts";
 import { saveLinkedInSession } from "../steps/save-linkedin-session.ts";
 import { sendSingleEmail } from "../steps/send-emails.ts";
-import { getRecordKey, isValidEmail } from "../utils/email-utils.ts";
+import { findJobIndexById, getJobId, isValidEmail, needsEmailDraft } from "../utils/email-utils.ts";
 import { readOptionalEnv, requireEnv } from "../utils/env-utils.ts";
 import { getJobsFilePath, readJsonArray, readTextFile, writeJsonArray } from "../utils/json-store.ts";
 import { log } from "../utils/logger.ts";
+import {
+    compileSearchQuery,
+    getSearchQueryText,
+    getSearchQueryView,
+    normalizeSearchQueryConfig,
+    writeSearchQueryConfig,
+} from "../utils/search-query.ts";
 import { getRunState, isRunActive, setRunStage, startRun } from "./run-manager.ts";
 
 const HTTP_STATUS = {
@@ -45,16 +52,9 @@ const RESUME_UPLOAD = {
 
 const app = new Hono();
 
-function toJobId(record: JobPostRecord): string {
-    const recordKey = getRecordKey(record);
-    const jobId = Buffer.from(recordKey).toString("base64url");
-
-    return jobId;
-}
-
 function toJobView(record: JobPostRecord): JobView {
     const jobView: JobView = {
-        id: toJobId(record),
+        id: getJobId(record),
         authorName: record.authorName,
         email: record.email,
         companyName: record.companyName,
@@ -68,12 +68,6 @@ function toJobView(record: JobPostRecord): JobView {
     return jobView;
 }
 
-function findJobIndex(records: JobPostRecord[], jobId: string): number {
-    const jobIndex = records.findIndex((record) => toJobId(record) === jobId);
-
-    return jobIndex;
-}
-
 function readProfileText(filePath: string): string {
     const fileExists = existsSync(filePath);
     if (!fileExists) return "";
@@ -85,16 +79,31 @@ function readProfileText(filePath: string): string {
 
 async function runFindJobs(): Promise<void> {
     const jobsFilePath = getJobsFilePath();
-    const searchQuery = readOptionalEnv(ENV_KEYS.SEARCH_QUERY) || DEFAULT_SEARCH_QUERY;
+    const searchQuery = getSearchQueryText();
 
     setRunStage(RUN_STAGES.SCRAPE);
     await runScraperAgent(searchQuery);
 
     setRunStage(RUN_STAGES.AUDIT);
     auditRecords(jobsFilePath);
+}
 
-    setRunStage(RUN_STAGES.WRITE);
+async function runDraftAll(): Promise<void> {
+    const jobsFilePath = getJobsFilePath();
+
+    setRunStage(RUN_STAGES.DRAFT_ALL);
     await runEmailWriterAgent(jobsFilePath);
+}
+
+function buildDraftJobTask(jobId: string): () => Promise<void> {
+    const task = async (): Promise<void> => {
+        const jobsFilePath = getJobsFilePath();
+
+        setRunStage(RUN_STAGES.DRAFT_JOB);
+        await runEmailWriterForJob(jobsFilePath, jobId);
+    };
+
+    return task;
 }
 
 async function runSession(): Promise<void> {
@@ -121,7 +130,7 @@ app.put(`${SERVER.API_BASE}/jobs/:id`, async (c) => {
     const payload = await c.req.json<{ subject?: string; body?: string }>();
     const jobsFilePath = getJobsFilePath();
     const records = readJsonArray<JobPostRecord>(jobsFilePath);
-    const jobIndex = findJobIndex(records, jobId);
+    const jobIndex = findJobIndexById(records, jobId);
 
     const isMissing = jobIndex < 0;
     if (isMissing) {
@@ -150,7 +159,7 @@ app.post(`${SERVER.API_BASE}/jobs/:id/send`, async (c) => {
     const payload = await c.req.json<{ subject?: string; body?: string }>().catch(() => ({ subject: "", body: "" }));
     const jobsFilePath = getJobsFilePath();
     const records = readJsonArray<JobPostRecord>(jobsFilePath);
-    const jobIndex = findJobIndex(records, jobId);
+    const jobIndex = findJobIndexById(records, jobId);
 
     const isMissing = jobIndex < 0;
     if (isMissing) {
@@ -175,6 +184,26 @@ app.post(`${SERVER.API_BASE}/jobs/:id/send`, async (c) => {
     await sendSingleEmail(jobsFilePath, record);
 
     return c.json({ sent: true });
+});
+
+app.post(`${SERVER.API_BASE}/jobs/:id/draft`, (c) => {
+    if (isRunActive()) {
+        return c.json({ error: "A run is already in progress." }, HTTP_STATUS.CONFLICT);
+    }
+
+    const jobId = c.req.param("id");
+    const records = readJsonArray<JobPostRecord>(getJobsFilePath());
+    const jobIndex = findJobIndexById(records, jobId);
+
+    const isMissing = jobIndex < 0;
+    if (isMissing) {
+        return c.json({ error: "Job not found." }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    const draftJobTask = buildDraftJobTask(jobId);
+    startRun(RUN_TYPES.DRAFT_JOB, draftJobTask);
+
+    return c.json(getRunState());
 });
 
 app.get(`${SERVER.API_BASE}/processed`, (c) => {
@@ -208,6 +237,23 @@ app.post(`${SERVER.API_BASE}/runs/find-jobs`, (c) => {
     return c.json(getRunState());
 });
 
+app.post(`${SERVER.API_BASE}/runs/draft-all`, (c) => {
+    if (isRunActive()) {
+        return c.json({ error: "A run is already in progress." }, HTTP_STATUS.CONFLICT);
+    }
+
+    const records = readJsonArray<JobPostRecord>(getJobsFilePath());
+    const pendingRecords = records.filter((record) => needsEmailDraft(record));
+    const hasPending = pendingRecords.length > 0;
+    if (!hasPending) {
+        return c.json({ error: "Every job already has a draft." }, HTTP_STATUS.CONFLICT);
+    }
+
+    startRun(RUN_TYPES.DRAFT_ALL, runDraftAll);
+
+    return c.json(getRunState());
+});
+
 app.post(`${SERVER.API_BASE}/runs/session`, (c) => {
     if (isRunActive()) {
         return c.json({ error: "A run is already in progress." }, HTTP_STATUS.CONFLICT);
@@ -216,6 +262,32 @@ app.post(`${SERVER.API_BASE}/runs/session`, (c) => {
     startRun(RUN_TYPES.SESSION, runSession);
 
     return c.json(getRunState());
+});
+
+app.get(`${SERVER.API_BASE}/search-query`, (c) => {
+    const searchQuery = getSearchQueryView();
+    const operators = Object.values(SEARCH_OPERATORS);
+
+    return c.json({ searchQuery, operators });
+});
+
+app.put(`${SERVER.API_BASE}/search-query`, async (c) => {
+    const payload = await c.req.json<unknown>();
+
+    try {
+        const config = normalizeSearchQueryConfig(payload);
+        writeSearchQueryConfig(config);
+
+        const query = compileSearchQuery(config);
+        const searchQuery: SearchQueryView = { groupOperator: config.groupOperator, groups: config.groups, query };
+        log(`[server] search query saved: ${query}`);
+
+        return c.json({ searchQuery });
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+
+        return c.json({ error: reason }, HTTP_STATUS.BAD_REQUEST);
+    }
 });
 
 app.get(`${SERVER.API_BASE}/template`, (c) => {

@@ -18,6 +18,7 @@ export const LEGACY_RAW_DIR = path.join(DATA_ROOT, "raw");
 
 export const DATA_PATHS = {
     JOBS_FILE: path.join(DATA_ROOT, "jobs.json"),
+    SEARCH_QUERY_FILE: path.join(DATA_ROOT, "search-query.json"),
     PROCESSED_FILE: path.join(DATA_DIRS.PROCESSED, "processed-records.json"),
     SKIPPED_FILE: path.join(DATA_DIRS.PROCESSED, "skipped.json"),
     MISSING_FILE: path.join(DATA_DIRS.AMBIGUITY, "missing.json"),
@@ -46,7 +47,6 @@ export const FILE_ENCODING = "utf-8";
 export const ENV_KEYS = {
     OPENROUTER_API_KEY: "OPENROUTER_API_KEY",
     MODEL: "MODEL",
-    SEARCH_QUERY: "SEARCH_QUERY",
     GMAIL_USER: "GMAIL_USER",
     GMAIL_APP_PASSWORD: "GMAIL_APP_PASSWORD",
     SENDER_NAME: "SENDER_NAME",
@@ -63,7 +63,7 @@ export const OPENROUTER = {
 } as const;
 
 export const SERVER = {
-    DEFAULT_PORT: 3000,
+    DEFAULT_PORT: 3001,
     PORT_ENV_KEY: "PORT",
     HOSTNAME: "127.0.0.1",
     CLIENT_DIST_DIR: path.join(PROJECT_ROOT, "client", "dist", "client", "browser"),
@@ -73,6 +73,8 @@ export const SERVER = {
 
 export const RUN_TYPES = {
     FIND_JOBS: "find-jobs",
+    DRAFT_ALL: "draft-all",
+    DRAFT_JOB: "draft-job",
     SESSION: "session",
 } as const;
 
@@ -86,13 +88,39 @@ export const RUN_STATUSES = {
 export const RUN_STAGES = {
     SCRAPE: "Scraping LinkedIn posts",
     AUDIT: "Auditing records",
-    WRITE: "Drafting emails",
+    DRAFT_ALL: "Drafting an email for every job",
+    DRAFT_JOB: "Drafting one email",
     SESSION: "Waiting for the LinkedIn window",
 } as const;
 
 export const RUN_LOG_LIMIT = 200;
 
-export const DEFAULT_SEARCH_QUERY = `"HR" AND ("Trainee" OR "Fresh Graduate") AND "Karachi"`;
+export const SEARCH_OPERATORS = {
+    AND: "AND",
+    OR: "OR",
+} as const;
+
+// Terms inside a group are joined by that group's operator; the groups are then joined by groupOperator.
+export const DEFAULT_SEARCH_QUERY_CONFIG = {
+    groupOperator: SEARCH_OPERATORS.AND,
+    groups: [
+        { operator: SEARCH_OPERATORS.OR, terms: ["Finance"] },
+        { operator: SEARCH_OPERATORS.OR, terms: ["Remote", "Karachi", "Qatar"] },
+        { operator: SEARCH_OPERATORS.OR, terms: ["Resume", "CV"] },
+    ],
+};
+
+export const SEARCH_QUERY_LIMITS = {
+    MAX_GROUPS: 8,
+    MAX_TERMS_PER_GROUP: 12,
+    MAX_TERM_CHARS: 80,
+} as const;
+
+export const DRAFT_STATUSES = {
+    DRAFTED: "drafted",
+    MISMATCH: "mismatch",
+    FAILED: "failed",
+} as const;
 
 export const POST_KEYWORDS = ["resume", "apply", "cv", "send your", "share your", "email your", "hiring"] as const;
 

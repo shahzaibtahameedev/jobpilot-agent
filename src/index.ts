@@ -5,14 +5,14 @@ import { fileURLToPath } from "node:url";
 import { RateLimitError } from "./agent-sdk.ts";
 import { runEmailWriterAgent } from "./agents/email-writer-agent.ts";
 import { runScraperAgent } from "./agents/scraper-agent.ts";
-import { DATA_DIRS, DATA_PATHS, DEFAULT_SEARCH_QUERY, ENV_KEYS, PIPELINE_STAGES, STEP_NAMES } from "./constants.ts";
+import { DATA_DIRS, DATA_PATHS, PIPELINE_STAGES, STEP_NAMES } from "./constants.ts";
 import type { AuditSummary } from "./interfaces.ts";
 import { auditRecords } from "./steps/audit-records.ts";
 import { saveLinkedInSession } from "./steps/save-linkedin-session.ts";
 import { sendEmails } from "./steps/send-emails.ts";
-import { readOptionalEnv } from "./utils/env-utils.ts";
 import { ensureJsonArrayFile, getJobsFilePath, migrateLegacyRawFiles } from "./utils/json-store.ts";
 import { log } from "./utils/logger.ts";
+import { ensureSearchQueryFile, getSearchQueryText } from "./utils/search-query.ts";
 
 export async function runStartupChecks(stage: string): Promise<void> {
     for (const dir of Object.values(DATA_DIRS)) {
@@ -23,6 +23,7 @@ export async function runStartupChecks(stage: string): Promise<void> {
     ensureJsonArrayFile(DATA_PATHS.PROCESSED_FILE);
     ensureJsonArrayFile(DATA_PATHS.MISSING_FILE);
     ensureJsonArrayFile(DATA_PATHS.SKIPPED_FILE);
+    ensureSearchQueryFile();
 
     const migratedCount = migrateLegacyRawFiles();
     const hasMigrated = migratedCount > 0;
@@ -56,10 +57,11 @@ async function runAllStages(jobsFilePath: string, searchQuery: string): Promise<
 
 async function runPipeline(stage: string): Promise<void> {
     const jobsFilePath = getJobsFilePath();
-    const searchQuery = readOptionalEnv(ENV_KEYS.SEARCH_QUERY) || DEFAULT_SEARCH_QUERY;
     log(`[${STEP_NAMES.PIPELINE}] stage: ${stage}, file: ${jobsFilePath}`);
 
     await runStartupChecks(stage);
+
+    const searchQuery = getSearchQueryText();
 
     switch (stage) {
         case PIPELINE_STAGES.LOGIN:

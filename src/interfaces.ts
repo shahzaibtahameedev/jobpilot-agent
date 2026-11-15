@@ -1,10 +1,12 @@
 import type { McpServerConfig } from "@anthropic-ai/claude-agent-sdk";
 import type {
     AUDIT_VERDICTS,
+    DRAFT_STATUSES,
     PIPELINE_STAGES,
     RUN_STATUSES,
     RUN_TYPES,
     SAVE_POST_STATUSES,
+    SEARCH_OPERATORS,
     SEND_ACTIONS,
 } from "./constants.ts";
 
@@ -14,6 +16,22 @@ export type AuditVerdict = (typeof AUDIT_VERDICTS)[keyof typeof AUDIT_VERDICTS];
 export type SendAction = (typeof SEND_ACTIONS)[keyof typeof SEND_ACTIONS];
 export type RunType = (typeof RUN_TYPES)[keyof typeof RUN_TYPES];
 export type RunStatus = (typeof RUN_STATUSES)[keyof typeof RUN_STATUSES];
+export type SearchOperator = (typeof SEARCH_OPERATORS)[keyof typeof SEARCH_OPERATORS];
+export type DraftStatus = (typeof DRAFT_STATUSES)[keyof typeof DRAFT_STATUSES];
+
+export interface SearchQueryGroup {
+    operator: SearchOperator;
+    terms: string[];
+}
+
+export interface SearchQueryConfig {
+    groupOperator: SearchOperator;
+    groups: SearchQueryGroup[];
+}
+
+export interface SearchQueryView extends SearchQueryConfig {
+    query: string;
+}
 
 export interface RunState {
     type: RunType | null;
@@ -109,6 +127,12 @@ export interface WriteSummary {
     mismatched: number;
     skipped: number;
     failed: number;
+}
+
+export interface DraftContext {
+    profile: string;
+    signature: string;
+    template: string;
 }
 
 export interface SenderAddress {

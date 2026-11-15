@@ -1,19 +1,24 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import type { ResumeMeta } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
+import { QueryBuilder } from './query-builder';
 
-type SettingsTab = 'profile' | 'template' | 'resume';
+type SettingsTab = 'profile' | 'template' | 'resume' | 'search-query';
 
 const BYTES_PER_KILOBYTE = 1024;
+const TAB_QUERY_PARAM = 'tab';
+const SETTINGS_TABS: SettingsTab[] = ['profile', 'template', 'resume', 'search-query'];
 
 @Component({
   selector: 'app-settings-page',
-  imports: [],
+  imports: [QueryBuilder],
   templateUrl: './settings-page.html',
 })
 export class SettingsPage implements OnInit {
   protected readonly api = inject(ApiService);
+  protected readonly route = inject(ActivatedRoute);
   protected readonly toastService = inject(ToastService);
 
   protected readonly activeTab = signal<SettingsTab>('profile');
@@ -30,6 +35,7 @@ export class SettingsPage implements OnInit {
   protected readonly isResumeUploading = signal(false);
 
   ngOnInit(): void {
+    this.applyTabFromUrl();
     this.loadAll();
   }
 
@@ -120,6 +126,14 @@ export class SettingsPage implements OnInit {
     const formatted = new Date(isoDate).toLocaleString();
 
     return formatted;
+  }
+
+  private applyTabFromUrl(): void {
+    const requestedTab = this.route.snapshot.queryParamMap.get(TAB_QUERY_PARAM);
+    const isKnownTab = requestedTab !== null && SETTINGS_TABS.includes(requestedTab as SettingsTab);
+    if (!isKnownTab) return;
+
+    this.activeTab.set(requestedTab as SettingsTab);
   }
 
   private async loadAll(): Promise<void> {

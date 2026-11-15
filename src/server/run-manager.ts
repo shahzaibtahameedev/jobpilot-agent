@@ -1,6 +1,6 @@
-import { RUN_LOG_LIMIT, RUN_STATUSES } from "../constants.ts";
+import { RUN_LOG_LIMIT, RUN_STATUSES, STEP_NAMES } from "../constants.ts";
 import type { RunState, RunType } from "../interfaces.ts";
-import { setLogListener } from "../utils/logger.ts";
+import { log, setLogListener } from "../utils/logger.ts";
 
 const state: RunState = {
     type: null,
@@ -45,6 +45,7 @@ export function startRun(type: RunType, task: () => Promise<void>): void {
             const reason = error instanceof Error ? error.message : String(error);
             state.status = RUN_STATUSES.FAILED;
             state.error = reason;
+            log(`[${STEP_NAMES.PIPELINE}] run "${type}" failed: ${reason}`);
         })
         .finally(() => {
             state.finishedAt = new Date().toISOString();

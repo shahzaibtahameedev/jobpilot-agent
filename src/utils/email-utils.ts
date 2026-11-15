@@ -41,6 +41,32 @@ export function isSamePost(first: JobPostRecord, second: JobPostRecord): boolean
     return getRecordKey(first) === getRecordKey(second);
 }
 
+export function getJobId(record: JobPostRecord): string {
+    const recordKey = getRecordKey(record);
+    const jobId = Buffer.from(recordKey).toString("base64url");
+
+    return jobId;
+}
+
+export function findJobIndexById(records: readonly JobPostRecord[], jobId: string): number {
+    const jobIndex = records.findIndex((record) => getJobId(record) === jobId);
+
+    return jobIndex;
+}
+
+export function hasEmailDraft(record: JobPostRecord): boolean {
+    const isDrafted = Boolean(record.subject && record.body);
+
+    return isDrafted;
+}
+
+export function needsEmailDraft(record: JobPostRecord): boolean {
+    const isMismatch = record.isMatch === false;
+    const isPending = !isMismatch && !hasEmailDraft(record);
+
+    return isPending;
+}
+
 export function isDuplicate(record: JobPostRecord, existingRecords: readonly JobPostRecord[]): boolean {
     const email = normalizeEmail(record.email);
 

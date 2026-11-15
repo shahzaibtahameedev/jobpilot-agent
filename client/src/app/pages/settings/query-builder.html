@@ -1,0 +1,108 @@
+<div class="flex max-w-3xl flex-col gap-5">
+  <div class="panel p-5">
+    <h2 class="text-sm font-semibold text-ink-100">Search query</h2>
+    <p class="mb-4 mt-1 text-xs leading-relaxed text-ink-400">
+      Terms inside a group are joined by that group's operator and wrapped in brackets. The groups are then joined
+      by the operator below. Type a term and press Enter to add it.
+    </p>
+
+    <div class="mb-4 flex items-center gap-3 rounded-lg bg-ink-900 p-3">
+      <span class="text-xs font-medium uppercase tracking-wide text-ink-400">Join groups with</span>
+      <div class="flex gap-1 rounded-lg bg-ink-950 p-1">
+        @for (operator of operators; track operator) {
+          <button type="button" (click)="onSetGroupOperator(operator)"
+                  class="rounded-md px-3 py-1 text-xs font-semibold transition"
+                  [class]="groupOperator() === operator ? 'bg-glow-500 text-ink-950' : 'text-ink-300 hover:text-ink-100'">
+            {{ operator }}
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <p class="text-sm text-ink-300">Loading the saved query...</p>
+    } @else {
+      <div class="flex flex-col gap-3">
+        @for (group of groups(); track groupIndex; let groupIndex = $index) {
+          @if (groupIndex > 0) {
+            <div class="flex items-center gap-3">
+              <span class="h-px flex-1 bg-ink-700"></span>
+              <span class="rounded-full border border-glow-600/40 bg-glow-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-glow-300">
+                {{ groupOperator() }}
+              </span>
+              <span class="h-px flex-1 bg-ink-700"></span>
+            </div>
+          }
+
+          <div class="rounded-lg border border-ink-700 bg-ink-900 p-4">
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-medium uppercase tracking-wide text-ink-400">Group {{ groupIndex + 1 }}</span>
+                <div class="flex gap-1 rounded-lg bg-ink-950 p-1">
+                  @for (operator of operators; track operator) {
+                    <button type="button" (click)="onSetTermOperator(groupIndex, operator)"
+                            class="rounded-md px-2.5 py-0.5 text-[11px] font-semibold transition"
+                            [class]="group.operator === operator ? 'bg-glow-500 text-ink-950' : 'text-ink-300 hover:text-ink-100'">
+                      {{ operator }}
+                    </button>
+                  }
+                </div>
+              </div>
+              <button type="button" (click)="onRemoveGroup(groupIndex)"
+                      class="text-xs text-ink-400 transition hover:text-rose-flag"
+                      [disabled]="groups().length === 1">
+                Remove group
+              </button>
+            </div>
+
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+              @for (term of group.terms; track term; let termIndex = $index) {
+                <span class="flex items-center gap-1.5 rounded-full border border-ink-600 bg-ink-850 px-2.5 py-1 text-xs text-ink-100">
+                  <span class="text-ink-400">"</span>{{ term }}<span class="text-ink-400">"</span>
+                  <button type="button" (click)="onRemoveTerm(groupIndex, termIndex)"
+                          class="text-ink-400 transition hover:text-rose-flag">✕</button>
+                </span>
+              } @empty {
+                <span class="text-xs italic text-ink-400">No terms yet.</span>
+              }
+            </div>
+
+            <div class="flex gap-2">
+              <input type="text" class="field flex-1" placeholder="Add a term, then press Enter"
+                     [maxLength]="maxTermChars"
+                     [value]="termDrafts()[groupIndex] || ''"
+                     (input)="onTermDraftInput(groupIndex, $event)"
+                     (keydown.enter)="onAddTerm(groupIndex)" />
+              <button type="button" class="btn-ghost shrink-0" (click)="onAddTerm(groupIndex)">Add</button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <button type="button" class="btn-ghost mt-4" (click)="onAddGroup()" [disabled]="!canAddGroup()">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
+        Add group
+      </button>
+    }
+  </div>
+
+  <div class="panel p-5">
+    <h2 class="text-sm font-semibold text-ink-100">What LinkedIn receives</h2>
+    <p class="mb-3 mt-1 text-xs text-ink-400">This exact string is sent as the Posts search, sorted by Top match, Past week.</p>
+    @if (preview()) {
+      <code class="block overflow-x-auto whitespace-pre rounded-lg bg-ink-950 p-3.5 font-mono text-[13px] leading-relaxed text-glow-300">{{ preview() }}</code>
+    } @else {
+      <p class="rounded-lg bg-ink-950 p-3.5 text-sm text-ink-400">Add at least one term to build a query.</p>
+    }
+  </div>
+
+  <div class="flex items-center justify-end gap-3">
+    @if (isDirty()) {
+      <span class="mr-auto text-xs text-glow-300">Unsaved changes</span>
+    }
+    <button type="button" class="btn-ghost" (click)="onReset()" [disabled]="isSaving() || !isDirty()">Reset</button>
+    <button type="button" class="btn-primary" (click)="onSave()" [disabled]="isSaving() || !preview()">
+      @if (isSaving()) { Saving... } @else { Save query }
+    </button>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+{
+  "groupOperator": "AND",
+  "groups": [
+    {
+      "operator": "OR",
+      "terms": [
+        "Finance"
+      ]
+    },
+    {
+      "operator": "OR",
+      "terms": [
+        "Remote",
+        "Karachi",
+        "Qatar"
+      ]
+    },
+    {
+      "operator": "OR",
+      "terms": [
+        "Resume",
+        "CV"
+      ]
+    }
+  ]
+}

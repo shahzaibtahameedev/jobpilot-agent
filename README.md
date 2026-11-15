@@ -55,7 +55,7 @@ It runs entirely on your machine. Nothing is uploaded anywhere except the model 
 In plain words, the full journey:
 
 1. **You sign in to LinkedIn once.** The app opens a Chrome window using your `li_at` cookie and keeps that browser profile on disk, so later runs are already signed in.
-2. **You click Find Jobs.** The scraper agent opens the LinkedIn posts search for your query (sorted by top match, limited to the past week), scrolls through up to 30 posts, and saves every hiring post that mentions words like "resume", "apply" or "hiring". Internship posts are skipped.
+2. **You click Find Jobs.** The scraper agent opens the LinkedIn posts search for your query (sorted by top match, limited to the past week), scrolls through up to 30 posts, and saves every hiring post that mentions words like "resume", "apply" or "hiring". Internship posts are skipped. Drafting is a separate click, so the posts are safe even if the scrape is interrupted.
 3. **The audit step cleans the list.** Posts from recruiters you already emailed are removed, and posts with no email address are moved to a "missing" file for you to look at by hand.
 4. **The email writer agent reads each post.** It judges whether the role fits the profile you wrote. If it does not fit, the post is moved to a skipped file and is never emailed. If it does, the agent produces a subject line and the placeholders your template needs.
 5. **You review each draft.** Open a job in the app, edit the subject and body if you want, and click Send. The email goes out through your Gmail with your resume attached.
@@ -185,7 +185,6 @@ For day-to-day frontend work, run `npm run dev:server` and `npm run dev:client` 
 | `GMAIL_APP_PASSWORD` | ✅ to send | A Gmail App Password, not your normal password. Spaces are stripped automatically. | `abcd efgh ijkl mnop` |
 | `LINKEDIN_LI_AT` | Recommended | Your LinkedIn `li_at` session cookie. Without it you simply sign in by hand in the Chrome window. | `AQEDAT...` |
 | `MODEL` | Optional | OpenRouter model slug. Defaults to `google/gemma-4-31b-it:free`. | `google/gemma-4-31b-it:free` |
-| `SEARCH_QUERY` | Optional | The LinkedIn posts search. Keep the outer single quotes so the inner double quotes survive. Defaults to an HR query. | `'"HR" AND "Karachi"'` |
 | `SENDER_NAME` | Optional | Display name on outgoing emails. Without it, only the address is shown. | `Your Name` |
 | `TEST_RECIPIENT` | Optional | Send every email to this address instead of the recruiter, with `[TEST to ...]` prefixed to the subject. Test sends are **not** marked as processed. | `you@gmail.com` |
 | `PORT` | Optional | Server port. Defaults to `3000`. | `3000` |
@@ -200,11 +199,11 @@ Sign in to LinkedIn in Chrome, open DevTools → Application → Cookies → `ht
 
 **Save LinkedIn Session** (top right) opens Chrome with your cookie applied. The window closes on its own once your feed loads, and the signed-in browser profile is kept in `data/browser-profile`. Do this once, and again whenever the session expires.
 
-**Jobs** is the main page. Click **Find Jobs** to run scrape → audit → drafting, with the current stage and live log shown as it goes. When it finishes, every refined post is listed on the left. Click one to see the recruiter, the original post and the drafted email; edit the subject or body, then **Save draft** or **Send email**. Posts the writer could not draft yet are tagged *Needs draft*.
+**Jobs** is the main page, and it works in two steps. Click **Find Jobs** to run scrape → audit, with the current stage and live log shown as it goes; every refined post is then listed on the left, tagged *Needs draft*. Drafting is separate, so a scrape that dies never costs you the drafts: click **Draft all** to draft every pending job in one run, or open a single job and click **Draft this email** for just that one. Once a job has a draft you can edit the subject or body and then **Save draft**, **Send email**, or **Redraft** to regenerate it from scratch. The active search query is shown above the buttons with an **Edit** link.
 
 **Processed** lists every email already sent, newest first, searchable by company, recruiter, address or subject.
 
-**Settings** has three tabs: *Profile* (the candidate profile the fit check reads, plus your signature), *Email template* (the placeholders `{{positionName}}`, `{{companyName}}` and `{{recruiterName}}` are required and the server rejects a template missing any of them) and *Resume* (upload a PDF, up to 10 MB).
+**Settings** has four tabs: *Search query* (an interactive builder: terms inside a group are joined by that group's AND/OR and wrapped in brackets, the groups are joined by the top-level operator, and a preview shows the exact string sent to LinkedIn), *Profile* (the candidate profile the fit check reads, plus your signature), *Email template* (the placeholders `{{positionName}}`, `{{companyName}}` and `{{recruiterName}}` are required and the server rejects a template missing any of them) and *Resume* (upload a PDF, up to 10 MB).
 
 **Free limits** shows the daily free-model request limit, usage and remainder for your OpenRouter key.
 
@@ -232,6 +231,7 @@ The CLI's `send` stage mails every ready draft without asking. If you want to ap
 | Path | What's in it |
 |---|---|
 | `data/jobs.json` | The working set: posts found, audited and drafted but not yet sent |
+| `data/search-query.json` | The LinkedIn search query, as groups of terms with their AND/OR operators |
 | `data/processed/processed-records.json` | Every email actually sent, with the date |
 | `data/processed/skipped.json` | Posts the writer judged a poor fit; never emailed |
 | `data/ambiguity/missing.json` | Posts with no readable recruiter email, for manual review |
@@ -254,8 +254,11 @@ All routes are served under `/api` by the Hono server on port 3000.
 | `POST` | `/api/jobs/:id/send` | Send one job's email, with optional overrides |
 | `GET` | `/api/processed` | Sent history, newest first |
 | `GET` | `/api/runs/current` | Status, stage, logs and error of the active run |
-| `POST` | `/api/runs/find-jobs` | Start scrape → audit → draft |
+| `POST` | `/api/jobs/:id/draft` | Draft or redraft one job's email |
+| `POST` | `/api/runs/find-jobs` | Start scrape → audit |
+| `POST` | `/api/runs/draft-all` | Draft every job that has no draft yet |
 | `POST` | `/api/runs/session` | Open the LinkedIn sign-in window |
+| `GET` / `PUT` | `/api/search-query` | Read or replace the LinkedIn search query |
 | `GET` / `PUT` | `/api/template` | Read or replace the email template |
 | `GET` / `PUT` | `/api/profile` | Read or replace the profile and signature |
 | `GET` / `POST` | `/api/resume` | Resume metadata, or upload a new PDF |
@@ -274,7 +277,7 @@ Only one run can be active at a time; starting a second returns `409`.
 | "No LinkedIn session found" | Click **Save LinkedIn Session** first; the run needs `data/browser-profile` to exist. |
 | The run stops with a rate-limit message | The model provider returned HTTP 429. The pipeline aborts immediately rather than burning more calls. Posts and drafts saved so far are kept — run it again later. |
 | "profile.md still has placeholder text" | Fill in your profile on the Settings page before drafting. |
-| The scraper finds nothing | Your session may have expired, or LinkedIn showed a checkpoint. Re-save the session and try a broader `SEARCH_QUERY`. |
+| The scraper finds nothing | Your session may have expired, or LinkedIn showed a checkpoint. Re-save the session and try a broader query on the Settings page. |
 | Gmail refuses the message | Check that `GMAIL_APP_PASSWORD` is an App Password and that 2-Step Verification is on. |
 
 The agents run on a tight leash: the scraper can only use Playwright tools plus `save_post`, and screenshots, file uploads, cookie edits and `browser_close` are blocked outright. It is instructed never to like, comment, repost, message, follow or connect with anyone.

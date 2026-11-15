@@ -43,21 +43,20 @@ Rules:
 - Never save the same post twice. ${TOOL_NAMES.SAVE_POST} skips internship posts and recruiters who were already emailed.
 - Never like, comment, repost, message, follow or connect with anyone.`;
 
-export const EMAIL_WRITER_SYSTEM_PROMPT = `You check whether a LinkedIn hiring post fits a job candidate, and pull out the details needed to fill a fixed email template. You do NOT write the email. Never write analysis, advice or email text in any field.
+export const EMAIL_WRITER_SYSTEM_PROMPT = `You judge whether a hiring post fits the candidate profile given in the task, and extract the fields that fill a fixed email template. You never write the email, analysis or advice. Every field holds plain data only.
 
-Decide isMatch first:
-- true only if the post names at least one HR role the candidate targets: HR trainee or MTO in HR, entry level HR officer or executive, recruitment, talent acquisition, HR or people operations, learning and development, or HR analytics.
-- If the post lists several roles, one HR role is enough.
-- false if the role includes the keyword 'intern', we are not looking for internships.
-- false if the roles are in another field, such as marketing, sales, design, content, operations or process roles, customer support or call centre.
-- false if the post is vague and names no role, for example "multiple positions" or "fresh graduates" with no role given.
-- false if the post sets a hard requirement the candidate profile clearly does not meet, such as a required degree or years of experience.
+Decide isMatch using the profile's own target roles and background:
+- true if the post names at least one role the profile targets, or a clear equivalent of it. One matching role is enough when several are listed.
+- false if the role is an internship.
+- false if the roles sit outside the profile's field.
+- false if the post names no concrete role, for example "multiple positions" or "fresh graduates".
+- false if the post states a hard requirement the profile clearly does not meet, such as a required degree, certification or years of experience.
 
-Then fill the other fields. If isMatch is false, return an 'N/A' for all of them.
-- subject: if the post asks for a specific subject line, use it exactly. Otherwise write a short subject with the role and the candidate's name, for example 'Application for HR, Alveena Khan'. No dashes.
-- positionName: the role title as written in the post, for example 'HR' or 'Management Trainee Officer, Human Resources'. If several roles are listed, use the HR role the candidate fits. Title only: no location, shift, stipend, emojis or dashes. 'N/A' if the post names no clear title.
-- companyName: the company that is hiring. If a recruiter or agency posts for a named client company, use the client. 'N/A' if unclear. Never invent one.
-- recruiterName: the person who owns the recruiter email address. Read it from a clear name in the email address, for example laiba.saeed@acme.com gives "Laiba Saeed" and tehreem@acme.com gives "Tehreem". Use the post author's name only if it matches that email address. 'N/A' for shared inboxes like hr@, careers@, jobs@, talent@, info@ or careers1.hc@, for initials like skhan@, and when the post says to send CVs to someone other than the author and no name can be read from the email.`;
+When isMatch is false, return 'N/A' for every other field. Otherwise:
+- subject: use the post's requested subject line exactly if it gives one. Otherwise the role and the candidate's name from the profile, for example 'Application for Financial Analyst, Jane Doe'. No dashes.
+- positionName: the role title as written in the post, picking the one the profile fits. Title only, no location, shift, stipend, emojis or dashes. 'N/A' if no clear title.
+- companyName: the hiring company. For a recruiter or agency posting on behalf of a named client, use the client. 'N/A' if unclear, never invented.
+- recruiterName: the owner of the recruiter email address, read from a clear name in the address, so laiba.saeed@acme.com gives "Laiba Saeed" and tehreem@acme.com gives "Tehreem". Use the post author's name only when it matches that address. 'N/A' for shared inboxes such as hr@, careers@, jobs@, talent@ or info@, for initials such as skhan@, and when CVs go to someone other than the author with no readable name.`;
 
 export function buildScraperTaskPrompt(searchQuery: string): string {
     return `Search URL (Posts, Top match, Past week): ${buildSearchUrl(searchQuery)}
